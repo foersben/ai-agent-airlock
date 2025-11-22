@@ -35,7 +35,7 @@ We chose **Podman** over Docker for specific security and architectural reasons:
 You need a standard Arch Linux install with the following tools:
 
 ```sh
-sudo pacman \-S \--noconfirm podman podman-docker fuse-overlayfs slirp4netns crun git wget xorg-xhost wmctrl
+sudo pacman -S --noconfirm podman podman-docker fuse-overlayfs slirp4netns crun git wget xorg-xhost wmctrl
 ```
 
 ### **2\. Rootless Configuration (Critical)**
@@ -49,7 +49,7 @@ grep $(whoami) /etc/subuid
 **If output is empty**, generate them:
 
 ```sh
-sudo usermod \--add-subuids 100000-165535 \--add-subgids 100000-165535 $(whoami)
+sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 $(whoami)
 ```
 
 ### **3\. Performance Tuning (containers.conf)**
@@ -57,11 +57,11 @@ sudo usermod \--add-subuids 100000-165535 \--add-subgids 100000-165535 $(whoami)
 I recommend switching the runtime to crun (C-based) instead of runc (Go-based) for better memory usage and speed.
 
 ```sh
-mkdir \-p \~/.config/containers  
-cp /usr/share/containers/containers.conf \~/.config/containers/
+mkdir -p ~/.config/containers  
+cp /usr/share/containers/containers.conf ~/.config/containers/
 
-\# Enable crun  
-sed \-i 's/^\# runtime \= "crun"/runtime \= "crun"/' \~/.config/containers/containers.conf
+# Enable crun  
+sed -i 's/^# runtime = "crun"/runtime = "crun"/' ~/.config/containers/containers.conf
 ```
 
 ## **🚀 Installation**
@@ -69,7 +69,7 @@ sed \-i 's/^\# runtime \= "crun"/runtime \= "crun"/' \~/.config/containers/conta
 ### **1\. Clone the Repository**
 
 ```sh
-git clone \[https://github.com/yourusername/ai-airlock.git\](https://github.com/yourusername/ai-airlock.git)  
+git clone https://github.com/yourusername/ai-airlock.git  
 cd ai-airlock
 ```
 
@@ -78,7 +78,7 @@ cd ai-airlock
 This script sets up the directory structure in \~/.config/containers and builds the base image.
 
 ```sh
-chmod \+x install.sh  
+chmod +x install.sh  
 ./install.sh
 ```
 
@@ -110,7 +110,7 @@ The wrapper script uses "Pet Container" logic.
 * To reset the system to a clean state (wiping system packages but keeping your project code), run:
 
   ```sh
-  podman rm \-f antigravity\_box
+  podman rm -f antigravity_box
   ```
 
 ## **🔧 Advanced Configuration**
@@ -136,8 +136,8 @@ If the window is black or crashes:
 
 1. The script defaults to **Software Rendering** (`--use-gl=swiftshader`) which is 100% stable but CPU-intensive.  
 2. If you want to try GPU acceleration (e.g., for NVIDIA), edit \~/.local/bin/antigravity:  
-   * Remove `\--disable-gpu` and `\--use-gl=swiftshader`.  
-   * Add `\--device /dev/dri`.  
+   * Remove `--disable-gpu` and `--use-gl=swiftshader`.  
+   * Add `--device /dev/dri`.  
    * *Warning:* This often causes crashes on rolling release distros due to driver version mismatches between Host and Container.
 
 ## **🧹 Maintenance**
@@ -145,17 +145,17 @@ If the window is black or crashes:
 Container builds can use up disk space. Use these commands to clean up:
 
 ```sh
-\# Clean up "dangling" build layers (Safe)  
-podman image prune \-f
+# Clean up "dangling" build layers (Safe)  
+podman image prune -f
 
-\# Clean up build cache (Safe)  
-podman builder prune \-f
+# Clean up build cache (Safe)  
+podman builder prune -f
 ```
 
 \# ⚠️ NUCLEAR OPTION (Deletes everything except active containers)
 
 ```sh
-podman system prune \-a
+podman system prune -a
 ```
 
 ## **📂 Repository Structure**
