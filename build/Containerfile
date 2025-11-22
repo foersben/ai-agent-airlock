@@ -1,0 +1,81 @@
+# ==========================================
+# STAGE 1: The Builder (Downloads & Packages)
+# ==========================================
+FROM archlinux:base-devel AS builder
+
+# 1. Sync DB & Install Git
+RUN pacman -Sy --noconfirm git git-lfs
+
+# 2. Create Build User
+RUN useradd -m builder && \
+    echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+USER builder
+WORKDIR /home/builder
+
+# 3. Copy Local Build Files
+COPY --chown=builder:builder antigravity-bin /home/builder/antigravity-bin
+
+# 4. Build
+WORKDIR /home/builder/antigravity-bin
+RUN makepkg -sc --noconfirm
+
+
+# ==========================================
+# STAGE 2: The Final Image ("Batteries Included")
+# ==========================================
+FROM archlinux:latest
+
+# 1. Install The Full Dev Suite
+# - base-devel: gcc, make, autoconf
+# - podman: client to talk to host
+# - act: for running GitHub actions locally
+# - python ecosystem: pip, poetry, pipx
+# - languages: go, jdk, nodejs
+# - tools: ripgrep, fd, jq, wget, unzip, man
+# - GUI libs: gtk3, tk, nss, alsa (needed for Electron/Plots)
+RUN pacman -Syu --noconfirm && \
+    pacman -S --noconfirm \
+    base-devel git sudo vim zsh wget unzip zip man-db \
+    ripgrep fd jq tree \
+    openssh \
+    python nodejs npm \
+    python-pip python-pipx python-poetry \
+    go jdk-openjdk \
+    podman act \
+    chromium \
+    ttf-dejavu ttf-liberation noto-fonts-emoji \
+    xorg-xauth libxkbfile libxkbcommon \
+    alsa-utils \
+    tk python-gobject \
+    starship
+
+# 2. Create Pilot User
+RUN useradd -m -u 1000 -G wheel -s /bin/zsh pilot && \
+    echo "pilot ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+# 3. Copy Antigravity Package
+COPY --from=builder /home/builder/antigravity-bin/*.pkg.tar.zst /tmp/antigravity.pkg.tar.zst
+
+# 4. Install Antigravity
+RUN pacman -U --noconfirm /tmp/antigravity.pkg.tar.zst && \
+    rm /tmp/antigravity.pkg.tar.zst
+
+# 5. Final Configs
+USER pilot
+WORKDIR /home/pilot
+
+# Create config folders to prevent permission errors
+RUN touch .zshrc && \
+    mkdir -p .config/pulse .cache/dconf .local/share .antigravity
+
+# FORCE OWNERSHIP (Fixes the EACCES error)
+USER root
+RUN chown -R pilot:pilot /home/pilot
+USER pilot
+
+# Set Default Browser (Fixes xdg-open crash in logs)
+ENV BROWSER=/usr/bin/chromium
+
+# 6. Launch
+CMD ["antigravity", "--no-sandbox", "--disable-gpu", "--wait", "/home/pilot/projects"]

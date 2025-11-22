@@ -1,0 +1,11 @@
+format = """
+[📦 ANTIGRAVITY]($style) $all
+"""
+[custom.container_label]
+style = "bg:red fg:white bold"
+[directory]
+style = "blue bold"
+truncation_length = 3
+[git_branch]
+symbol = "🌱 "
+style = "green"

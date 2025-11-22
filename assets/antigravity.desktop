@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Antigravity (AI Sandbox)
+Comment=Sandboxed AI IDE in Podman
+Exec=/home/$USER/.local/bin/antigravity
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;IDE;

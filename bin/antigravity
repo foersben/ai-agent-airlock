@@ -1,0 +1,108 @@
+#!/bin/bash
+
+# --- Configuration ---
+CONTAINER_NAME="antigravity_box"
+IMAGE_NAME="antigravity_image"
+PROJECT_DIR="$HOME/Documents/ai_sandbox"
+
+# --- Display & GPU Logic ---
+# Detects if we need X11 or Wayland sockets
+DISPLAY_MOUNTS=""
+GPU_FLAGS="--disable-gpu --use-gl=swiftshader" # Default to safe software rendering
+
+if [ -n "$WAYLAND_DISPLAY" ]; then
+    # Wayland Mode
+    if [ -e "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then
+        DISPLAY_MOUNTS="--volume $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY:/run/user/1000/$WAYLAND_DISPLAY --env WAYLAND_DISPLAY=$WAYLAND_DISPLAY --env XDG_RUNTIME_DIR=/run/user/1000"
+        # Optional: If you trust native Wayland support in Electron, you can tweak GPU flags here
+    fi
+fi
+
+# Always attempt X11 fallback (XWayland) just in case
+if [ -n "$DISPLAY" ]; then
+    xhost +si:localuser:$(whoami) > /dev/null
+    DISPLAY_MOUNTS="$DISPLAY_MOUNTS --volume /tmp/.X11-unix:/tmp/.X11-unix:ro --env DISPLAY=$DISPLAY"
+fi
+
+# --- Pre-Flight Checks ---
+if podman ps --format "{{.Names}}" | grep -q "^$CONTAINER_NAME$"; then
+    echo "Focusing running instance..."
+    if command -v wmctrl &> /dev/null; then wmctrl -a "Antigravity"; fi
+    exit 0
+fi
+
+if podman ps -a --format "{{.Names}}" | grep -q "^$CONTAINER_NAME$"; then
+    echo "Reviving stopped instance..."
+    podman start "$CONTAINER_NAME"
+    exit 0
+fi
+
+# --- Optional Mounts ---
+SOCK_MOUNT=""
+if [ -n "$SSH_AUTH_SOCK" ]; then
+    SOCK_MOUNT="--volume $SSH_AUTH_SOCK:/run/host-services/ssh-auth.sock --env SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock"
+fi
+
+DBUS_MOUNT=""
+if [ -e "/run/user/$(id -u)/bus" ]; then
+    DBUS_MOUNT="--volume /run/user/$(id -u)/bus:/tmp/dbus-session-socket --env DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/dbus-session-socket"
+fi
+
+PODMAN_SOCK_MOUNT=""
+if [ -S "/run/user/$(id -u)/podman/podman.sock" ]; then
+    PODMAN_SOCK_MOUNT="--volume /run/user/$(id -u)/podman/podman.sock:/var/run/docker.sock --security-opt label=disable"
+fi
+
+HOST_LIC_PATH="$HOME/gurobi.lic" 
+GUROBI_MOUNT=""
+if [ -f "$HOST_LIC_PATH" ]; then
+    GUROBI_MOUNT="--volume $HOST_LIC_PATH:/home/pilot/gurobi.lic:ro --env GRB_LICENSE_FILE=/home/pilot/gurobi.lic"
+fi
+
+# --- Standard Mounts ---
+IDENTITY_MOUNTS=" \
+    --volume $HOME/.gitconfig:/home/pilot/.gitconfig:ro \
+    --volume $HOME/.local/share/fonts:/home/pilot/.local/share/fonts:ro \
+    --volume /usr/share/fonts:/usr/share/fonts:ro \
+    --volume $HOME/.config/gtk-3.0:/home/pilot/.config/gtk-3.0:ro \
+    --volume $HOME/.config/starship_container.toml:/home/pilot/.config/starship.toml:ro"
+
+CACHE_MOUNTS=" \
+    --volume antigravity_config:/home/pilot/.config/Antigravity \
+    --volume antigravity_extensions:/home/pilot/.antigravity/extensions \
+    --volume antigravity_userdata:/home/pilot/.antigravity \
+    --volume antigravity_pip_cache:/home/pilot/.cache/pip \
+    --volume antigravity_npm_cache:/home/pilot/.npm \
+    --volume antigravity_pacman_cache:/var/cache/pacman/pkg"
+
+# --- Launch ---
+podman run -d \
+    --name "$CONTAINER_NAME" \
+    --userns=keep-id \
+    --net=slirp4netns \
+    --dns 8.8.8.8 \
+    --ipc=host \
+    --env LIBGL_ALWAYS_SOFTWARE=1 \
+    --env GALLIUM_DRIVER=llvmpipe \
+    --env ELECTRON_DISABLE_GPU=1 \
+    -p 3000-3005:3000-3005 \
+    -p 4000-4005:4000-4005 \
+    -p 5000-5005:5000-5005 \
+    -p 8000-8005:8000-8005 \
+    -p 8080-8085:8080-8085 \
+    --volume "$PROJECT_DIR":/home/pilot/projects \
+    --device /dev/snd \
+    $DISPLAY_MOUNTS \
+    $SOCK_MOUNT \
+    $DBUS_MOUNT \
+    $PODMAN_SOCK_MOUNT \
+    $IDENTITY_MOUNTS \
+    $CACHE_MOUNTS \
+    $GUROBI_MOUNT \
+    "$IMAGE_NAME" \
+    antigravity \
+    --no-sandbox \
+    --password-store="basic" \
+    $GPU_FLAGS \
+    --disable-dev-shm-usage \
+    --wait /home/pilot/projects
