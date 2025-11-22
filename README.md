@@ -2,31 +2,31 @@
 
 **Zero-Trust Development Environment for AI Agents**
 
-Run powerful AI coding assistants like **Google Antigravity**, **Cursor**, or **VS Code** inside a secured, rootless Podman sandbox on Arch Linux.
+Run powerful AI coding assistants like Google Antigravity, Cursor, or VS Code inside a secured, rootless Podman sandbox on Arch Linux.
 
 ## **📖 Overview**
 
-**AI Airlock** provides an "air-gapped" development environment where AI agents have full autonomy to write code, run terminal commands, and manage projects, but are physically isolated from your host system's sensitive data (SSH keys, Documents, Photos, System Configs).
+AI Agent Airlock provides an "air-gapped" development environment where AI agents have full autonomy to write code, run terminal commands, and manage projects, but are physically isolated from your host system's sensitive data (SSH keys, Documents, Photos, System Configs).
 
-The setup uses **Podman** to create a seamless bridge between your desktop environment (i3wm, Wayland, GNOME) and the container, forwarding only what is strictly necessary: X11/Wayland sockets, specific project folders, and SSH authentication.
+The setup uses Podman to create a seamless bridge between your desktop environment (i3wm, Wayland, GNOME) and the container, forwarding only what is strictly necessary: X11/Wayland sockets, specific project folders, and SSH authentication.
 
 ### **✨ Features**
 
 * **🛡️ Zero-Trust Sandbox:** The AI sees only \~/Documents/ai\_sandbox. It cannot read your $HOME.  
-* **🔑 Secure Identity:** Uses SSH Agent forwarding via unix sockets. Your private keys (id\_rsa) **never** leave the host RAM.  
+* **🔑 Secure Identity:** Uses SSH Agent forwarding via unix sockets. Your private keys (id\_rsa) never leave the host RAM.  
 * **🚀 Native Performance:** Uses crun for low-overhead containerization. Supports GPU-accelerated UI or stable SwiftShader fallbacks.  
 * **💾 Persistence:** "Pet Container" logic ensures installed packages, VS Code extensions, and settings survive reboots.  
 * **🔋 Batteries Included:** The image comes pre-loaded with git, python (pip/poetry/pipx), node, go, jdk, chromium, and act (for local GitHub Actions).  
-* **🔌 Integration:** Bridges for **Gurobi** licenses, **System Fonts**, and **GTK Themes** so the app looks native.
+* **🔌 Integration:** Bridges for Gurobi licenses, System Fonts, and GTK Themes so the app looks native.
 
 ## **🧐 Why Podman?**
 
-The "best" way to sandbox an AI agent depends on how you balance **Security** (isolation) vs. **Efficiency** (performance/convenience).
+The "best" way to sandbox an AI agent depends on how you balance Security (isolation) vs. Efficiency (performance/convenience).
 
-While Docker is common and effective, it typically runs a **root daemon**.
-That means: if an AI manages to escape the container, it could theoretically gain **root access to your host**.
+While Docker is common and effective, it typically runs a root daemon.
+That means: if an AI manages to escape the container, it could theoretically gain root access to your host.
 
-We selected **Podman** as the *Gold Standard* for this repository because it provides the best balance:
+I selected Podman as the *Gold Standard* for this repository because it provides the best balance:
 
 * **Rootless & daemonless** → no privileged background service
 * **High isolation** → escapes drop the AI into an *unprivileged* user
@@ -35,38 +35,33 @@ We selected **Podman** as the *Gold Standard* for this repository because it pro
 
 ### **🏛️ The Hierarchy of Isolation**
 
-1. The "Better" Standard: Podman (Recommended) 🏆
-* Verdict: ✅ More secure than Docker, equally efficient
-* Why: Podman is *rootless by design*.
-  If the AI manages to break out of the container, it becomes a regular user mapped to your host user.
-  It cannot modify system files, and there's **no daemon** running with elevated privileges.
-
+1. The "Better" Standard: Podman (Recommended)
+    * Verdict: ✅ More secure than Docker, equally efficient
+    * Why: Podman is *rootless by design*.
+      If the AI manages to break out of the container, it becomes a regular user mapped to your host user.
+      It cannot modify system files, and there's **no daemon** running with elevated privileges.
 2. The "Efficiency" Trap: Distrobox ⚠️
-* **Verdict:** ❌ **DO NOT USE** for untrusted AI agents
-* **Risk:** Distrobox prioritizes convenience, not isolation.
-  It **bind-mounts your entire Home directory** by default:
-
-  ```sh
-  ~/.ssh
-  ~/.mozilla
-  ~/Photos
-  ```
-
-  An untrusted AI has **instant access** to SSH keys, browser history, and personal files.
-
+    * Verdict: ❌ DO NOT USE for untrusted AI agents
+    * Risk: Distrobox prioritizes convenience, not isolation.
+      It bind-mounts your entire Home directory by default:
+      ```sh
+      ~/.ssh
+      ~/.mozilla
+      ~/Photos
+      ```
+      An untrusted AI has instant access to SSH keys, browser history, and personal files.
 3. The "Paranoid" Standard: MicroVMs (Firecracker / Qubes) 🛡️
+    * Verdict: 🛡️ Maximum security, lower efficiency
+    * Trade-off:
+      This is what AWS/OpenAI use to run your code.
+      A MicroVM provides hardware-enforced boundaries, but:
 
-* **Verdict:** 🛡️ Maximum security, lower efficiency
-* Trade-off:
-  This is what AWS/OpenAI use to run your code.
-  A MicroVM provides **hardware-enforced boundaries**, but:
+    * running GUI apps is slow
+    * GPU acceleration is usually unavailable
+    * IDEs feel laggy
+    * resource usage is higher
 
-  * running GUI apps is slow
-  * GPU acceleration is usually unavailable
-  * IDEs feel laggy
-  * resource usage is higher
-
-### 📊 Summary Comparison
+### **📊 Summary Comparison**
 
 | Method                | Security  | Efficiency | AI Risk Level                                                |
 | :-------------------- | :-------- | :--------- | :----------------------------------------------------------- |
@@ -76,11 +71,11 @@ We selected **Podman** as the *Gold Standard* for this repository because it pro
 | **Qubes OS / VM**     | 🛡️ Max   | 🔴 Low     | **Zero:** Full hardware isolation.                           |
 
 
-### Our Choice: Podman + Wayland/X11
+### **Choice: Podman + Wayland/X11**
 
-We use **Podman** to achieve strong filesystem isolation while still providing **near-native GUI performance** through X11/Wayland socket forwarding.
+I use Podman to achieve strong filesystem isolation while still providing near-native GUI performance through X11/Wayland socket forwarding.
 
-This avoids the historic **screen-logging risks of X11 forwarding**, works flawlessly with modern AI tooling, and keeps the environment lightweight and secure.
+This avoids the historic screen-logging risks of X11 forwarding, works flawlessly with modern AI tooling, and keeps the environment lightweight and secure.
 
 ## **⚙️ Prerequisites**
 
@@ -215,89 +210,3 @@ podman system prune -a
 ## License
 
 MIT
-
-
-Here is a **cleaned, merged, non-duplicated, GitHub-ready** version that keeps **all details** from both texts while removing redundancy and aligning formatting:
-
----
-
-## **🧐 Why Podman?**
-
-The "best" way to sandbox an AI agent depends on how you balance **Security** (isolation) vs. **Efficiency** (performance/convenience).
-
-While Docker is common and effective, it typically runs a **root daemon**.
-That means: if an AI manages to escape the container, it could theoretically gain **root access to your host**.
-
-We selected **Podman** as the *Gold Standard* for this repository because it provides the best balance:
-
-* **Rootless & daemonless** → no privileged background service
-* **High isolation** → escapes drop the AI into an *unprivileged* user
-* **High efficiency** → same performance as Docker
-* **Low system overhead** → no root daemon draining battery
-
----
-
-## **🏛️ The Hierarchy of Isolation**
-
-### **1. The "Better" Standard: Podman (Recommended) 🏆**
-
-* **Verdict:** ✅ More secure than Docker, equally efficient
-* **Why:** Podman is *rootless by design*.
-  If the AI manages to break out of the container, it becomes a **regular user** mapped to your host user.
-  It cannot modify system files, and there's **no daemon** running with elevated privileges.
-
----
-
-### **2. The "Efficiency" Trap: Distrobox ⚠️**
-
-* **Verdict:** ❌ **DO NOT USE** for untrusted AI agents
-* **Risk:** Distrobox prioritizes convenience, not isolation.
-  It **bind-mounts your entire Home directory** by default:
-
-  ```
-  ~/.ssh
-  ~/.mozilla
-  ~/Photos
-  ```
-
-  An untrusted AI has **instant access** to SSH keys, browser history, and personal files.
-
----
-
-### **3. The "Paranoid" Standard: MicroVMs (Firecracker / Qubes) 🛡️**
-
-* **Verdict:** 🛡️ Maximum security, lower efficiency
-* **Trade-off:**
-  This is what AWS/OpenAI use to run your code.
-  A MicroVM provides **hardware-enforced boundaries**, but:
-
-  * running GUI apps is slow
-  * GPU acceleration is usually unavailable
-  * IDEs feel laggy
-  * resource usage is higher
-
----
-
-## **📊 Summary Comparison**
-
-| Method                | Security  | Efficiency | AI Risk Level                                                |
-| :-------------------- | :-------- | :--------- | :----------------------------------------------------------- |
-| **Distrobox**         | 🔴 Low    | 🟢 High    | **Critical:** Can read your `~/.ssh` and all personal files. |
-| **Docker (Root)**     | 🟡 Medium | 🟡 Medium  | **Moderate:** Root daemon escape → host compromise.          |
-| **Podman (Rootless)** | 🟢 High   | 🟢 High    | **Low:** Escapes drop into an unprivileged user.             |
-| **Qubes OS / VM**     | 🛡️ Max   | 🔴 Low     | **Zero:** Full hardware isolation.                           |
-
----
-
-## **Our Choice: Podman + Wayland/X11**
-
-We use **Podman** to achieve strong filesystem isolation while still providing **near-native GUI performance** through X11/Wayland socket forwarding.
-
-This avoids the historic **screen-logging risks of X11 forwarding**, works flawlessly with modern AI tooling, and keeps the environment lightweight and secure.
-
----
-
-If you'd like, I can also:
-✅ rewrite this in a more concise marketing style
-✅ rewrite in a more technical whitepaper tone
-✅ convert it into collapsible `<details>` sections for GitHub Markdown
