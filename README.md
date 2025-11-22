@@ -152,24 +152,11 @@ podman image prune -f
 podman builder prune -f
 ```
 
-\# ⚠️ NUCLEAR OPTION (Deletes everything except active containers)
+⚠️ NUCLEAR OPTION (Deletes everything except active containers)
 
 ```sh
 podman system prune -a
 ```
-
-## **📂 Repository Structure**
-
-ai-airlock/  
-├── install.sh                  \# Setup automation  
-├── bin/  
-│   └── antigravity             \# The smart wrapper script (Runtime Logic)  
-├── build/  
-│   └── Containerfile           \# The immutable image definition (Build Logic)  
-├── config/  
-│   └── starship.toml           \# Visual indicator for container shell  
-└── assets/  
-    └── antigravity.desktop     \# Desktop entry
 
 ## License
 
