@@ -34,41 +34,53 @@ We chose **Podman** over Docker for specific security and architectural reasons:
 
 You need a standard Arch Linux install with the following tools:
 
+```sh
 sudo pacman \-S \--noconfirm podman podman-docker fuse-overlayfs slirp4netns crun git wget xorg-xhost wmctrl
+```
 
 ### **2\. Rootless Configuration (Critical)**
 
 Podman needs a range of "Sub-UIDs" to map users securely. Check if they exist:
 
+```sh
 grep $(whoami) /etc/subuid
+```
 
 **If output is empty**, generate them:
 
+```sh
 sudo usermod \--add-subuids 100000-165535 \--add-subgids 100000-165535 $(whoami)
+```
 
 ### **3\. Performance Tuning (containers.conf)**
 
-We recommend switching the runtime to crun (C-based) instead of runc (Go-based) for better memory usage and speed.
+I recommend switching the runtime to crun (C-based) instead of runc (Go-based) for better memory usage and speed.
 
+```sh
 mkdir \-p \~/.config/containers  
 cp /usr/share/containers/containers.conf \~/.config/containers/
 
 \# Enable crun  
 sed \-i 's/^\# runtime \= "crun"/runtime \= "crun"/' \~/.config/containers/containers.conf
+```
 
 ## **🚀 Installation**
 
 ### **1\. Clone the Repository**
 
+```sh
 git clone \[https://github.com/yourusername/ai-airlock.git\](https://github.com/yourusername/ai-airlock.git)  
 cd ai-airlock
+```
 
 ### **2\. Run the Installer**
 
 This script sets up the directory structure in \~/.config/containers and builds the base image.
 
+```sh
 chmod \+x install.sh  
 ./install.sh
+```
 
 *Note: This will take a few minutes as it compiles the Antigravity binary from the AUR inside a temporary builder container.*
 
@@ -84,7 +96,7 @@ You can launch the environment in three ways:
 
 ### **The "Magic Portal" (File Sharing)**
 
-The container is isolated, but we created one specific shared folder:
+The container is isolated, but I created one specific shared folder:
 
 | Host Location | Container Location | Purpose |
 | :---- | :---- | :---- |
@@ -95,8 +107,11 @@ The container is isolated, but we created one specific shared folder:
 The wrapper script uses "Pet Container" logic.
 
 * If you run sudo pacman \-S htop inside the terminal, it **will persist** after you close the window.  
-* To reset the system to a clean state (wiping system packages but keeping your project code), run:  
+* To reset the system to a clean state (wiping system packages but keeping your project code), run:
+
+  ```sh
   podman rm \-f antigravity\_box
+  ```
 
 ## **🔧 Advanced Configuration**
 
@@ -113,30 +128,35 @@ This script is the brain of the operation. It handles:
 
 If you use Gurobi for optimization, place your license file at \~/gurobi.lic. The container will auto-detect it.
 
-* *Note:* If you have a node-locked license that fails inside the container, edit \~/.local/bin/antigravity and change \--net=slirp4netns to \--net=host (Warning: Reduces network isolation).
+* *Note:* If you have a node-locked license that fails inside the container, edit \~/.local/bin/antigravity and change `--net=slirp4netns` to `--net=host` (Warning: Reduces network isolation).
 
 ### **Troubleshooting Graphics**
 
 If the window is black or crashes:
 
-1. The script defaults to **Software Rendering** (--use-gl=swiftshader) which is 100% stable but CPU-intensive.  
+1. The script defaults to **Software Rendering** (`--use-gl=swiftshader`) which is 100% stable but CPU-intensive.  
 2. If you want to try GPU acceleration (e.g., for NVIDIA), edit \~/.local/bin/antigravity:  
-   * Remove \--disable-gpu and \--use-gl=swiftshader.  
-   * Add \--device /dev/dri.  
+   * Remove `\--disable-gpu` and `\--use-gl=swiftshader`.  
+   * Add `\--device /dev/dri`.  
    * *Warning:* This often causes crashes on rolling release distros due to driver version mismatches between Host and Container.
 
 ## **🧹 Maintenance**
 
 Container builds can use up disk space. Use these commands to clean up:
 
+```sh
 \# Clean up "dangling" build layers (Safe)  
 podman image prune \-f
 
 \# Clean up build cache (Safe)  
 podman builder prune \-f
+```
 
-\# ⚠️ NUCLEAR OPTION (Deletes everything except active containers)  
+\# ⚠️ NUCLEAR OPTION (Deletes everything except active containers)
+
+```sh
 podman system prune \-a
+```
 
 ## **📂 Repository Structure**
 
