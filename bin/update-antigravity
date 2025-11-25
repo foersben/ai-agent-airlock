@@ -1,0 +1,34 @@
+#!/bin/bash
+set -e
+
+BUILD_DIR="$HOME/.config/containers/antigravity_build"
+REPO_DIR="$BUILD_DIR/antigravity-bin"
+
+echo "🚀 Starting Antigravity Update..."
+
+# 1. Update the AUR Package Definition
+if [ -d "$REPO_DIR" ]; then
+    echo "📥 Pulling latest changes from AUR..."
+    cd "$REPO_DIR"
+    git pull
+else
+    echo "⚠️  AUR directory not found. Cloning fresh..."
+    cd "$BUILD_DIR"
+    git clone https://aur.archlinux.org/antigravity-bin.git
+fi
+
+# 2. Rebuild the Image
+echo "🏗️  Rebuilding Container Image..."
+cd "$BUILD_DIR"
+
+# --no-cache ensures it actually downloads the new tarball instead of using the old layer
+podman build --no-cache -t antigravity_image .
+
+# 3. Remove the Old Container
+echo "♻️  Removing old container instance..."
+
+# Suppress error if container is already gone
+podman rm -f antigravity_box || true
+
+echo "✅ Update Complete!"
+echo "Run 'antigravity' to launch the new version."
