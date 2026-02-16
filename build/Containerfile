@@ -18,7 +18,7 @@ COPY --chown=builder:builder antigravity-bin /home/builder/antigravity-bin
 
 # 4. Build
 WORKDIR /home/builder/antigravity-bin
-RUN makepkg -sc --noconfirm
+RUN makepkg -sc --noconfirm --skipinteg
 
 
 # ==========================================
@@ -36,11 +36,11 @@ FROM archlinux:latest
 # - GUI libs: gtk3, tk, nss, alsa (needed for Electron/Plots)
 RUN pacman -Syu --noconfirm && \
     pacman -S --noconfirm \
-    base-devel git sudo vim zsh wget unzip zip man-db \
-    ripgrep fd jq tree \
+    base-devel git sudo vim zsh wget unzip zip man-db neovim \
+    ripgrep fd jq tree eza fzf bat \
     openssh \
     python nodejs npm \
-    python-pip python-pipx python-poetry \
+    python-pip python-pipx python-poetry uv \
     go jdk-openjdk \
     podman act \
     chromium \
@@ -48,7 +48,7 @@ RUN pacman -Syu --noconfirm && \
     xorg-xauth libxkbfile libxkbcommon \
     alsa-utils \
     tk python-gobject \
-    starship
+    starship fish tmux ghostty
 
 # 2. Create Pilot User
 RUN useradd -m -u 1000 -G wheel -s /bin/zsh pilot && \

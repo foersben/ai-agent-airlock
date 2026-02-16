@@ -75,6 +75,35 @@ CACHE_MOUNTS=" \
     --volume antigravity_npm_cache:/home/pilot/.npm \
     --volume antigravity_pacman_cache:/var/cache/pacman/pkg"
 
+# --- Dotfiles Integration ---
+DOTFILES_HOST_DIR="$HOME/.config/containers/antigravity_dotfiles"
+DOTFILES_MOUNTS=""
+
+if [ -d "$DOTFILES_HOST_DIR" ]; then
+    echo "🎨 Loading custom dotfiles..."
+    
+    # 1. Fish Config
+    if [ -f "$DOTFILES_HOST_DIR/fish/config.fish" ]; then
+        DOTFILES_MOUNTS="$DOTFILES_MOUNTS --volume $DOTFILES_HOST_DIR/fish/config.fish:/home/pilot/.config/fish/config.fish:ro"
+    fi
+    
+    # 2. Fish Plugins (List)
+    if [ -f "$DOTFILES_HOST_DIR/fish/fish_plugins" ]; then
+        DOTFILES_MOUNTS="$DOTFILES_MOUNTS --volume $DOTFILES_HOST_DIR/fish/fish_plugins:/home/pilot/.config/fish/fish_plugins:ro"
+    fi
+
+    # 3. Tmux Config
+    if [ -f "$DOTFILES_HOST_DIR/tmux/tmux.conf" ]; then
+        DOTFILES_MOUNTS="$DOTFILES_MOUNTS --volume $DOTFILES_HOST_DIR/tmux/tmux.conf:/home/pilot/.tmux.conf:ro"
+    fi
+
+    # 4. Starship (Overrides the default container starship)
+    if [ -f "$DOTFILES_HOST_DIR/starship/starship.toml" ]; then
+        # Note: We overwrite the previous mount for starship if it exists
+        DOTFILES_MOUNTS="$DOTFILES_MOUNTS --volume $DOTFILES_HOST_DIR/starship/starship.toml:/home/pilot/.config/starship.toml:ro"
+    fi
+fi
+
 # --- Launch ---
 podman run -d \
     --name "$CONTAINER_NAME" \
@@ -99,6 +128,7 @@ podman run -d \
     $IDENTITY_MOUNTS \
     $CACHE_MOUNTS \
     $GUROBI_MOUNT \
+	$DOTFILES_MOUNTS \
     "$IMAGE_NAME" \
     antigravity \
     --no-sandbox \

@@ -59,6 +59,23 @@ cp assets/antigravity.desktop "$HOME/.local/share/applications/"
 # Make executable
 chmod +x "$BIN_DIR/antigravity"
 
+# 4.5. Optional Dotfiles Setup
+echo -e "${BLUE}🎨 Dotfiles Configuration${NC}"
+DOTFILES_DEST="$HOME/.config/containers/antigravity_dotfiles"
+
+if [ -d "$DOTFILES_DEST" ]; then
+    echo -e "${GREEN}✅ Dotfiles already detected at $DOTFILES_DEST${NC}"
+else
+    read -p "Do you want to use your private dotfiles? (y/N) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        read -p "Enter your Dotfiles Git URL: " DOTFILES_REPO
+        echo "Cloning $DOTFILES_REPO..."
+        # Uses host SSH keys, so private repos work fine
+        git clone "$DOTFILES_REPO" "$DOTFILES_DEST"
+    fi
+fi
+
 # 5. Build Image
 echo -e "${BLUE}🏗️  Building Antigravity Image (This will take a while)...${NC}"
 cd "$INSTALL_DIR"
