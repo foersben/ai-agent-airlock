@@ -7,7 +7,11 @@ PROJECT_DIR="$HOME/Documents/ai_sandbox"
 
 # --- Display & GPU Logic ---
 DISPLAY_MOUNTS=""
-GPU_FLAGS="--disable-gpu --use-gl=swiftshader"
+# OLD (Software / Slow / Buggy):
+# GPU_FLAGS="--disable-gpu --use-gl=swiftshader"
+
+# NEW (Hardware / Fast):
+GPU_FLAGS="--device /dev/dri"
 
 if [ -n "$WAYLAND_DISPLAY" ]; then
     if [ -e "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then
