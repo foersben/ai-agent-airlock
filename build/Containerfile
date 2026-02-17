@@ -60,7 +60,7 @@ WORKDIR /home/pilot
 
 # Create config folders to prevent permission errors
 RUN touch .zshrc && \
-    mkdir -p .config/pulse .cache/dconf .local/share .antigravity
+    mkdir -p .config/pulse .cache/dconf .local/share .antigravity .config/fish
 
 # FORCE OWNERSHIP (Fixes the EACCES error)
 USER root
