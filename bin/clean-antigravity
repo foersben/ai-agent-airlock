@@ -1,0 +1,46 @@
+#!/bin/bash
+# bin/clean-antigravity
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+echo -e "${RED}🧹 Starting Antigravity Cleanup...${NC}"
+
+# 1. Stop and Remove the Container
+# This deletes the "running machine" but not the "hard drives" (volumes)
+if podman ps -a --format "{{.Names}}" | grep -q "^antigravity_box$"; then
+	echo -e "${BLUE}♻️  Removing container instance...${NC}"
+	podman rm -f antigravity_box
+else
+	echo "   Container already gone."
+fi
+
+# 2. Remove the Image
+# This forces the next update to build from a fresh Arch Linux base,
+# fixing the "Partial Upgrade" / libgcc errors.
+if podman images --format "{{.Repository}}" | grep -q "^antigravity_image$"; then
+	echo -e "${BLUE}🗑️  Removing container image...${NC}"
+	podman image rm antigravity_image
+else
+	echo "   Image already gone."
+fi
+
+# 3. Clear the Build Cache (The "Fix" for your AUR errors)
+# This removes the folder where the corrupt PKGBUILD was stuck.
+BUILD_DIR="$HOME/.config/containers/antigravity_build"
+if [ -d "$BUILD_DIR" ]; then
+	echo -e "${BLUE}🔥 Wiping build cache ($BUILD_DIR)...${NC}"
+	rm -rf "$BUILD_DIR"
+else
+	echo "   Build cache already empty."
+fi
+
+# 4. Prune Dangling Layers (Optional Disk Space Saver)
+echo -e "${BLUE}🚿 Pruning unused build layers...${NC}"
+podman image prune -f --filter "label=antigravity_build=true" 2>/dev/null
+
+echo -e "${GREEN}✨ Cleanup Complete!${NC}"
+echo "You can now run './install.sh' (to update configs) or './bin/update-antigravity' (to rebuild)."

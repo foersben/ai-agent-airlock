@@ -4,7 +4,7 @@
 FROM archlinux:base-devel AS builder
 
 # 1. Sync DB & Install Git
-RUN pacman -Sy --noconfirm git git-lfs
+RUN pacman -Syu --noconfirm git git-lfs
 
 # 2. Create Build User
 RUN useradd -m builder && \
@@ -27,13 +27,6 @@ RUN makepkg -sc --noconfirm --skipinteg
 FROM archlinux:latest
 
 # 1. Install The Full Dev Suite
-# - base-devel: gcc, make, autoconf
-# - podman: client to talk to host
-# - act: for running GitHub actions locally
-# - python ecosystem: pip, poetry, pipx
-# - languages: go, jdk, nodejs
-# - tools: ripgrep, fd, jq, wget, unzip, man
-# - GUI libs: gtk3, tk, nss, alsa (needed for Electron/Plots)
 RUN pacman -Syu --noconfirm && \
     pacman -S --noconfirm \
     base-devel git sudo vim zsh wget unzip zip man-db neovim \
@@ -74,7 +67,7 @@ USER root
 RUN chown -R pilot:pilot /home/pilot
 USER pilot
 
-# Set Default Browser (Fixes xdg-open crash in logs)
+# Set Default Browser
 ENV BROWSER=/usr/bin/chromium
 
 # 6. Launch

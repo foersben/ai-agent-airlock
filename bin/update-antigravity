@@ -5,30 +5,37 @@ BUILD_DIR="$HOME/.config/containers/antigravity_build"
 REPO_DIR="$BUILD_DIR/antigravity-bin"
 
 echo "🚀 Starting Antigravity Update..."
+echo "⚠️  WARNING: This will delete the current container."
+echo "    Any packages installed via 'sudo pacman' inside the container will be lost."
+echo "    (Project files in ~/Documents/ai_sandbox are SAFE)"
+echo "    (Pip/Npm caches are SAFE)"
+
+read -p "Continue? (y/N) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+	echo "Aborted."
+	exit 1
+fi
 
 # 1. Update the AUR Package Definition
 if [ -d "$REPO_DIR" ]; then
-    echo "📥 Pulling latest changes from AUR..."
-    cd "$REPO_DIR"
-    git pull
+	echo "📥 Pulling latest changes from AUR..."
+	cd "$REPO_DIR"
+	git pull
 else
-    echo "⚠️  AUR directory not found. Cloning fresh..."
-    cd "$BUILD_DIR"
-    git clone https://aur.archlinux.org/antigravity-bin.git
+	echo "⚠️  AUR directory not found. Cloning fresh..."
+	cd "$BUILD_DIR"
+	git clone https://aur.archlinux.org/antigravity-bin.git
 fi
 
 # 2. Rebuild the Image
 echo "🏗️  Rebuilding Container Image..."
 cd "$BUILD_DIR"
-
-# --no-cache ensures it actually downloads the new tarball instead of using the old layer
 podman build --no-cache -t antigravity_image .
 
 # 3. Remove the Old Container
 echo "♻️  Removing old container instance..."
-
-# Suppress error if container is already gone
 podman rm -f antigravity_box || true
 
 echo "✅ Update Complete!"
-echo "Run 'antigravity' to launch the new version."
+echo "Run 'antigravity' to launch."

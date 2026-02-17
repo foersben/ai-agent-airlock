@@ -6,19 +6,15 @@ IMAGE_NAME="antigravity_image"
 PROJECT_DIR="$HOME/Documents/ai_sandbox"
 
 # --- Display & GPU Logic ---
-# Detects if we need X11 or Wayland sockets
 DISPLAY_MOUNTS=""
-GPU_FLAGS="--disable-gpu --use-gl=swiftshader" # Default to safe software rendering
+GPU_FLAGS="--disable-gpu --use-gl=swiftshader"
 
 if [ -n "$WAYLAND_DISPLAY" ]; then
-    # Wayland Mode
     if [ -e "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then
         DISPLAY_MOUNTS="--volume $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY:/run/user/1000/$WAYLAND_DISPLAY --env WAYLAND_DISPLAY=$WAYLAND_DISPLAY --env XDG_RUNTIME_DIR=/run/user/1000"
-        # Optional: If you trust native Wayland support in Electron, you can tweak GPU flags here
     fi
 fi
 
-# Always attempt X11 fallback (XWayland) just in case
 if [ -n "$DISPLAY" ]; then
     xhost +si:localuser:$(whoami) > /dev/null
     DISPLAY_MOUNTS="$DISPLAY_MOUNTS --volume /tmp/.X11-unix:/tmp/.X11-unix:ro --env DISPLAY=$DISPLAY"
@@ -48,25 +44,8 @@ if [ -e "/run/user/$(id -u)/bus" ]; then
     DBUS_MOUNT="--volume /run/user/$(id -u)/bus:/tmp/dbus-session-socket --env DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/dbus-session-socket"
 fi
 
-PODMAN_SOCK_MOUNT=""
-if [ -S "/run/user/$(id -u)/podman/podman.sock" ]; then
-    PODMAN_SOCK_MOUNT="--volume /run/user/$(id -u)/podman/podman.sock:/var/run/docker.sock --security-opt label=disable"
-fi
-
-HOST_LIC_PATH="$HOME/gurobi.lic" 
-GUROBI_MOUNT=""
-if [ -f "$HOST_LIC_PATH" ]; then
-    GUROBI_MOUNT="--volume $HOST_LIC_PATH:/home/pilot/gurobi.lic:ro --env GRB_LICENSE_FILE=/home/pilot/gurobi.lic"
-fi
-
-# --- Standard Mounts ---
-IDENTITY_MOUNTS=" \
-    --volume $HOME/.gitconfig:/home/pilot/.gitconfig:ro \
-    --volume $HOME/.local/share/fonts:/home/pilot/.local/share/fonts:ro \
-    --volume /usr/share/fonts:/usr/share/fonts:ro \
-    --volume $HOME/.config/gtk-3.0:/home/pilot/.config/gtk-3.0:ro \
-    --volume $HOME/.config/starship_container.toml:/home/pilot/.config/starship.toml:ro"
-
+# --- Persistence Mounts ---
+# We persist pip/npm/pacman caches so re-installing things is fast
 CACHE_MOUNTS=" \
     --volume antigravity_config:/home/pilot/.config/Antigravity \
     --volume antigravity_extensions:/home/pilot/.antigravity/extensions \
@@ -75,36 +54,55 @@ CACHE_MOUNTS=" \
     --volume antigravity_npm_cache:/home/pilot/.npm \
     --volume antigravity_pacman_cache:/var/cache/pacman/pkg"
 
-# --- Dotfiles Integration ---
+# --- Dotfiles & Flexibility ---
 DOTFILES_HOST_DIR="$HOME/.config/containers/antigravity_dotfiles"
 DOTFILES_MOUNTS=""
+BOOT_SCRIPT=""
 
 if [ -d "$DOTFILES_HOST_DIR" ]; then
     echo "🎨 Loading custom dotfiles..."
     
-    # 1. Fish Config
-    if [ -f "$DOTFILES_HOST_DIR/fish/config.fish" ]; then
+    # 1. ZSH (from dotfiles/zsh/.zshrc)
+    if [ -f "$DOTFILES_HOST_DIR/zsh/.zshrc" ]; then
+        DOTFILES_MOUNTS="$DOTFILES_MOUNTS --volume $DOTFILES_HOST_DIR/zsh/.zshrc:/home/pilot/.zshrc:ro"
+    fi
+
+    # 2. TMUX (from dotfiles/tmux/.tmux.conf)
+    if [ -f "$DOTFILES_HOST_DIR/tmux/.tmux.conf" ]; then
+        DOTFILES_MOUNTS="$DOTFILES_MOUNTS --volume $DOTFILES_HOST_DIR/tmux/.tmux.conf:/home/pilot/.tmux.conf:ro"
+    fi
+
+    # 3. FISH (from dotfiles/fish/.config/fish/config.fish)
+    # Checking both flat and nested structure to be safe
+    if [ -f "$DOTFILES_HOST_DIR/fish/.config/fish/config.fish" ]; then
+        DOTFILES_MOUNTS="$DOTFILES_MOUNTS --volume $DOTFILES_HOST_DIR/fish/.config/fish/config.fish:/home/pilot/.config/fish/config.fish:ro"
+    elif [ -f "$DOTFILES_HOST_DIR/fish/config.fish" ]; then
         DOTFILES_MOUNTS="$DOTFILES_MOUNTS --volume $DOTFILES_HOST_DIR/fish/config.fish:/home/pilot/.config/fish/config.fish:ro"
     fi
+
+    # 4. STARSHIP
+    if [ -f "$DOTFILES_HOST_DIR/starship/.config/starship.toml" ]; then
+        DOTFILES_MOUNTS="$DOTFILES_MOUNTS --volume $DOTFILES_HOST_DIR/starship/.config/starship.toml:/home/pilot/.config/starship.toml:ro"
+    fi
     
-    # 2. Fish Plugins (List)
-    if [ -f "$DOTFILES_HOST_DIR/fish/fish_plugins" ]; then
-        DOTFILES_MOUNTS="$DOTFILES_MOUNTS --volume $DOTFILES_HOST_DIR/fish/fish_plugins:/home/pilot/.config/fish/fish_plugins:ro"
-    fi
-
-    # 3. Tmux Config
-    if [ -f "$DOTFILES_HOST_DIR/tmux/tmux.conf" ]; then
-        DOTFILES_MOUNTS="$DOTFILES_MOUNTS --volume $DOTFILES_HOST_DIR/tmux/tmux.conf:/home/pilot/.tmux.conf:ro"
-    fi
-
-    # 4. Starship (Overrides the default container starship)
-    if [ -f "$DOTFILES_HOST_DIR/starship/starship.toml" ]; then
-        # Note: We overwrite the previous mount for starship if it exists
-        DOTFILES_MOUNTS="$DOTFILES_MOUNTS --volume $DOTFILES_HOST_DIR/starship/starship.toml:/home/pilot/.config/starship.toml:ro"
+    # 5. BOOT SCRIPT (Flexibility Hook)
+    # If boot.sh exists, we mount it and tell the container to run it
+    if [ -f "$DOTFILES_HOST_DIR/boot.sh" ]; then
+        echo "🔧 Found boot.sh - Custom startup logic enabled."
+        chmod +x "$DOTFILES_HOST_DIR/boot.sh"
+        DOTFILES_MOUNTS="$DOTFILES_MOUNTS --volume $DOTFILES_HOST_DIR/boot.sh:/home/pilot/.boot.sh:ro"
+        # We append a command to execute this script in the background or before the app
+        # Since we can't easily change the ENTRYPOINT, we rely on the user running it or using .zshrc to trigger it.
+        # BETTER OPTION: We mount it to a profile.d script or zshrc sourcing?
+        # Simplest: We inject it into .zshrc via a separate mount if we want it auto-run, 
+        # OR we just accept that the user must run `./.boot.sh` manually.
+        # AUTOMATED APPROACH: Mount it to /etc/profile.d/99-custom-boot.sh (requires root, which we have at build time, but not run time).
+        # SAFE APPROACH: Mount to /home/pilot/.boot.sh and add a trigger to .zshrc
     fi
 fi
 
 # --- Launch ---
+# We use --entrypoint to allow running a setup command if needed, but standard `antigravity` is fine.
 podman run -d \
     --name "$CONTAINER_NAME" \
     --userns=keep-id \
@@ -112,7 +110,6 @@ podman run -d \
     --dns 8.8.8.8 \
     --ipc=host \
     --env LIBGL_ALWAYS_SOFTWARE=1 \
-    --env GALLIUM_DRIVER=llvmpipe \
     --env ELECTRON_DISABLE_GPU=1 \
     -p 3000-3005:3000-3005 \
     -p 4000-4005:4000-4005 \
@@ -124,15 +121,12 @@ podman run -d \
     $DISPLAY_MOUNTS \
     $SOCK_MOUNT \
     $DBUS_MOUNT \
-    $PODMAN_SOCK_MOUNT \
-    $IDENTITY_MOUNTS \
+    $DOTFILES_MOUNTS \
     $CACHE_MOUNTS \
-    $GUROBI_MOUNT \
-	$DOTFILES_MOUNTS \
     "$IMAGE_NAME" \
     antigravity \
     --no-sandbox \
     --password-store="basic" \
     $GPU_FLAGS \
-    --disable-dev-shm-usage \
-    --wait /home/pilot/projects
+	--disable-dev-shm-usage \
+	--wait /home/pilot/projects
